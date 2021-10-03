@@ -18,7 +18,7 @@ def test_detect_scanned_image_edge_position():
 
     # run test
     in_image = cv2.imread(str(in_file_path))
-    result_image, result_data = detect_scanned_image_edge_position(in_image, args)
+    result_images, result_data = detect_scanned_image_edge_position(in_image, args)
 
     # check result
     with open(exp_file_path, "rb") as f:

@@ -27,8 +27,23 @@ def detect_scanned_image_edge_position(image: np.array, args):
             else None
         )
 
-    # convert input image to gray
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # convert input image to hsl and make saturation max
+    saturation_grain = 3.0
+    hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype(np.float) / 255.0
+    # make gray image from saturaton and lightness
+    # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).astype(np.float) / 255.
+    gray_image = (
+        np.maximum(
+            0.0,
+            (
+                (1 if args.background_is_black else -1)
+                * (np.power(saturation_grain * hsv_image[..., 1], 2))
+            )
+            + np.power(hsv_image[..., 2], 2),
+        )
+    ) / (1.0 + saturation_grain * saturation_grain)
+    gray_image *= 255.0
+    gray_image = gray_image.astype(np.uint8)
     # binarize
     _, binarized_image = cv2.threshold(
         gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
@@ -54,15 +69,16 @@ def detect_scanned_image_edge_position(image: np.array, args):
 
     if contours[0].shape[0] != 4:
         print("[ERROR] border detection failed")
-        return None
+        return None, None
 
     # draw debug image
     contours = list(
         filter(lambda x: cv2.contourArea(x) > int(sum(image.shape[:2]) / 2), contours)
     )
     # # draw border
+    result_image = image.copy()
     result_image = cv2.drawContours(
-        image, contours, -1, color=(0, 255, 255), thickness=2
+        result_image, contours, -1, color=(0, 255, 255), thickness=2
     )
     # # draw bounding box
     bbox_x_left = int(np.min(contours[0][..., 0]))
@@ -101,18 +117,18 @@ def detect_scanned_image_edge_position(image: np.array, args):
     ].tolist()
 
     result_data = {
-        "boundary_x_left_top": boundary_x_left_top,
-        "boundary_y_left_top": boundary_y_left_top,
-        "boundary_x_right_top": boundary_x_right_top,
-        "boundary_y_right_top": boundary_y_right_top,
-        "boundary_x_right_bottom": boundary_x_right_bottom,
-        "boundary_y_right_bottom": boundary_y_right_bottom,
-        "boundary_x_left_bottom": boundary_x_left_bottom,
-        "boundary_y_left_bottom": boundary_y_left_bottom,
-        "bbox_x_left": bbox_x_left,
-        "bbox_y_top": bbox_y_top,
-        "bbox_width": bbox_width,
-        "bbox_height": bbox_height,
+        "boundary_x_left_top": str(boundary_x_left_top),
+        "boundary_y_left_top": str(boundary_y_left_top),
+        "boundary_x_right_top": str(boundary_x_right_top),
+        "boundary_y_right_top": str(boundary_y_right_top),
+        "boundary_x_right_bottom": str(boundary_x_right_bottom),
+        "boundary_y_right_bottom": str(boundary_y_right_bottom),
+        "boundary_x_left_bottom": str(boundary_x_left_bottom),
+        "boundary_y_left_bottom": str(boundary_y_left_bottom),
+        "bbox_x_left": str(bbox_x_left),
+        "bbox_y_top": str(bbox_y_top),
+        "bbox_width": str(bbox_width),
+        "bbox_height": str(bbox_height),
     }
 
     # draw position info
@@ -144,4 +160,7 @@ def detect_scanned_image_edge_position(image: np.array, args):
         bottomLeftOrigin=False,
     )
 
-    return result_image, result_data
+    # crop image
+    cropped_image = image[bbox_y_top:bbox_y_bottom, bbox_x_left:bbox_x_right].copy()
+
+    return (result_image, cropped_image), result_data
