@@ -147,3 +147,4 @@ out/
 *.webp
 *.WEBP
 !/data/sample.jpg
+!/image/*
