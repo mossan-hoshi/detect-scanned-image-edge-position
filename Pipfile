@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[pipenv]
+allow_prereleases = true
+
+[packages]
+opencv-python = "*"
+
+[dev-packages]
+black = "*"
+flake8 = "*"
+pytest = "*"
+
+[requires]
+python_version = "3.9"
+
+[scripts]
+test = "python -m pytest"

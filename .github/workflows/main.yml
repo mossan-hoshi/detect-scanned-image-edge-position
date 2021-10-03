@@ -1,0 +1,22 @@
+name: python test(pytest)
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - name: "3.9"
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.9"
+      - name: Install pipenv and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pipenv --upgrade-strategy=only-if-needed
+          pipenv install --dev
+      - name: Run test
+        run: |
+          pipenv run test
