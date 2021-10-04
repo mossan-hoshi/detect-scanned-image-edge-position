@@ -28,22 +28,17 @@ def detect_scanned_image_edge_position(image: np.array, args):
         )
 
     # convert input image to hsl and make saturation max
-    saturation_grain = 3.0
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype(np.float) / 255.0
-    # make gray image from saturaton and lightness
-    # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY).astype(np.float) / 255.
     gray_image = (
-        np.maximum(
-            0.0,
+        (hsv_image[..., 1] > 0.3)
+        | (
             (
-                (1 if args.background_is_black else -1)
-                * (np.power(saturation_grain * hsv_image[..., 1], 2))
+                (hsv_image[..., 2] > 0.3)
+                if args.background_is_black
+                else (hsv_image[..., 2] < 0.7)
             )
-            + np.power(hsv_image[..., 2], 2),
         )
-    ) / (1.0 + saturation_grain * saturation_grain)
-    gray_image *= 255.0
-    gray_image = gray_image.astype(np.uint8)
+    ).astype(np.uint8) * 255
     # binarize
     _, binarized_image = cv2.threshold(
         gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
