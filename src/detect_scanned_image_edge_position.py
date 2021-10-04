@@ -29,23 +29,22 @@ def detect_scanned_image_edge_position(image: np.array, args):
 
     # convert input image to hsl and make saturation max
     hsv_image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV).astype(np.float) / 255.0
-    gray_image = (
-        (hsv_image[..., 1] > 0.3)
-        | (
-            (
-                (hsv_image[..., 2] > 0.3)
-                if args.background_is_black
-                else (hsv_image[..., 2] < 0.7)
-            )
-        )
-    ).astype(np.uint8) * 255
+    if not args.background_is_black:
+        # reverse lightness
+        hsv_image[..., 2] = 1.0 - hsv_image[..., 2]
+    gray_image = ((hsv_image[..., 1] > 0.2) | ((hsv_image[..., 2] > 0.3))).astype(
+        np.uint8
+    ) * 255
     # binarize
     _, binarized_image = cv2.threshold(
         gray_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU
     )
-    # if background is white, reverse value
-    if not args.background_is_black:
-        binarized_image = np.bitwise_not(binarized_image)
+    # remove small space
+    kernel_length = int(np.min(gray_image.shape[:2])) / 100.0
+    kernel_length = int(max(3, kernel_length - (kernel_length % 2) + 1))
+    kernel = np.ones((kernel_length, kernel_length), np.uint8)
+    gray_image = cv2.dilate(gray_image, kernel, iterations=1)
+    gray_image = cv2.erode(gray_image, kernel, iterations=1)
     # find outer boundary
     contours, _ = cv2.findContours(
         binarized_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
